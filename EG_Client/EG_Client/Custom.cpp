@@ -1,6 +1,4 @@
-﻿
-
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #ifdef _WIN32
 #include <windows.h>
 #else
@@ -131,17 +129,13 @@ int EndGame(GAMEENDINFO GameEndInfo)
 /// <returns>結果（0:成功, その他:エラー）</returns>
 int MovePhase(GAMEINFO GameInfo, MOVEPIECEINFO *pMovePiece)
 {
-	if ( NULL == pMovePiece )
-	{
+	if( pMovePiece == NULL ) {
 		return	1;
 	}
 
 	//TODO: GameInfoを元にpMovePieceに移動データを入力する
 	//      動かせない場合はpMovePiece->nStepに0を設定する
 
-	//////////
-	// Sample
-	
 	//ランダムで移動する
 	const char	cDirection[] = {	DIRECTION_UP,
 									DIRECTION_DOWN,
@@ -149,41 +143,32 @@ int MovePhase(GAMEINFO GameInfo, MOVEPIECEINFO *pMovePiece)
 									DIRECTION_RIGHT };
 	int		i;
 	PIECE	*pPiece;
-	
-	
+
 	memset(pMovePiece, 0, sizeof(MOVEPIECEINFO) );
 	pMovePiece->nOrder = GameInfo.nOrder;
 	
 	pPiece = NULL;
-	for ( i=0 ; i<MAX_PIECE ; i++ )
-	{
-		if (GameInfo.nOrder == GameInfo.PlayerPiece[0].Piece[i].nOrder)
-		{
+	for( i=0 ; i<MAX_PIECE ; i++ ) {
+		if( GameInfo.nOrder == GameInfo.PlayerPiece[0].Piece[i].nOrder) {
 			pPiece = &GameInfo.PlayerPiece[0].Piece[i];
 			break;
 		}
 	}
 
-	if ( NULL != pPiece)
-	{
-		if (0 == pPiece->nSleep)
-		{
-			if (0 < GameInfo.PlayerPiece[0].nBootCount)
-			{
+	if( pPiece != NULL ) {
+		if( pPiece->nSleep == 0 ) {
+			if( GameInfo.PlayerPiece[0].nBootCount > 0 ) {
 				pMovePiece->nStep = (0 == (rand() % 50)) ? 2 : 1;
 			}
-			else
-			{
+			else {
 				pMovePiece->nStep = 1;
 			}
 
-			for (i = 0; i < pMovePiece->nStep; i++)
-			{
+			for( i = 0; i < pMovePiece->nStep; i++ ) {
 				pMovePiece->cDirection[i] = cDirection[rand() % 4];
 			}
 		}
-		else
-		{
+		else {
 			pMovePiece->nStep = 0;
 		}
 	}
