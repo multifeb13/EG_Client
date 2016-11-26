@@ -40,10 +40,13 @@ typedef struct tagPLAYERINFO
 } PLAYERINFO;
 
 
-//領地の状態
-#define	TERRITORY_BLANK			0					//未占領地
-													//占領地は占領したコマの順番が入力される
-
+//領地の状態(占領地は占領したコマの順番が入力される)
+enum
+{
+	TERRITORY_BLANK		= 0,						//未占領地
+	TERRITORY_FRIEND,
+	TERRITORY_ENEMY,
+};
 
 //領地情報
 typedef struct tagSQUAREMAP
@@ -108,7 +111,7 @@ typedef struct tagGAMEINFO
 	int				nTurn;							//ターン数
 	int				nOrder;							//動作順番
 	SQUAREMAP		Map[MAP_HEIGHT][MAP_WIDTH];		//マップ情報
-	PLAYERPIECE		PlayerPiece[MAX_GAMEPLAYER];	//プレイヤーのコマ情報
+	PLAYERPIECE		Player[MAX_GAMEPLAYER];	//プレイヤーのコマ情報
 } GAMEINFO;
 
 
@@ -125,10 +128,14 @@ typedef struct tagGAMESTARTINFO
 #define	MAX_STEP				2
 
 //移動方向
-#define	DIRECTION_UP			1					//上方向
-#define	DIRECTION_DOWN			2					//下方向
-#define	DIRECTION_LEFT			4					//左方向
-#define	DIRECTION_RIGHT			8					//右方向
+
+typedef enum {
+	DIRECTION_NONE = 0,
+	DIRECTION_UP = 1,
+	DIRECTION_DOWN = 2,
+	DIRECTION_LEFT = 4,
+	DIRECTION_RIGHT = 8,
+} MOVE_DIRECTION;
 
 
 //移動情報

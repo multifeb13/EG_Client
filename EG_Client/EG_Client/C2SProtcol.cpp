@@ -76,15 +76,15 @@ bool CC2SProtcol::RecvCommand(EGPROTCOL *pEgp)
 			pGameInfo->nOrder = ENDIAN_SWAP4BYTE(ENDIAN_LITTLE, pGameInfo->nOrder);
 			for (i = 0; i < MAX_GAMEPLAYER; i++)
 			{
-				pGameInfo->PlayerPiece[i].nBootCount = ENDIAN_SWAP4BYTE(ENDIAN_LITTLE, pGameInfo->PlayerPiece[i].nBootCount);
+				pGameInfo->Player[i].nBootCount = ENDIAN_SWAP4BYTE(ENDIAN_LITTLE, pGameInfo->Player[i].nBootCount);
 				
 				for (j = 0; j < MAX_PIECE; j++)
 				{
-					pGameInfo->PlayerPiece[i].Piece[j].nX = ENDIAN_SWAP4BYTE(ENDIAN_LITTLE, pGameInfo->PlayerPiece[i].Piece[j].nX);
-					pGameInfo->PlayerPiece[i].Piece[j].nY = ENDIAN_SWAP4BYTE(ENDIAN_LITTLE, pGameInfo->PlayerPiece[i].Piece[j].nY);
-					pGameInfo->PlayerPiece[i].Piece[j].nOrder = ENDIAN_SWAP4BYTE(ENDIAN_LITTLE, pGameInfo->PlayerPiece[i].Piece[j].nOrder);
-					pGameInfo->PlayerPiece[i].Piece[j].nType = ENDIAN_SWAP4BYTE(ENDIAN_LITTLE, pGameInfo->PlayerPiece[i].Piece[j].nType);
-					pGameInfo->PlayerPiece[i].Piece[j].nSleep = ENDIAN_SWAP4BYTE(ENDIAN_LITTLE, pGameInfo->PlayerPiece[i].Piece[j].nSleep);
+					pGameInfo->Player[i].Piece[j].nX = ENDIAN_SWAP4BYTE(ENDIAN_LITTLE, pGameInfo->Player[i].Piece[j].nX);
+					pGameInfo->Player[i].Piece[j].nY = ENDIAN_SWAP4BYTE(ENDIAN_LITTLE, pGameInfo->Player[i].Piece[j].nY);
+					pGameInfo->Player[i].Piece[j].nOrder = ENDIAN_SWAP4BYTE(ENDIAN_LITTLE, pGameInfo->Player[i].Piece[j].nOrder);
+					pGameInfo->Player[i].Piece[j].nType = ENDIAN_SWAP4BYTE(ENDIAN_LITTLE, pGameInfo->Player[i].Piece[j].nType);
+					pGameInfo->Player[i].Piece[j].nSleep = ENDIAN_SWAP4BYTE(ENDIAN_LITTLE, pGameInfo->Player[i].Piece[j].nSleep);
 				}
 			}
 			break;

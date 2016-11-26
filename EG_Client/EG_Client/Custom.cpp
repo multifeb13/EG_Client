@@ -9,6 +9,12 @@
 #include "StringUtility.h"
 #include <time.h>	//Sample//
 
+enum {
+	RESULT_FOUND_UNOCCUPATION = 1,
+	RESULT_FOUND_ENEMYOCCUPATION,
+	RESULT_FOUND_FAMILYOCCUPATION,
+	RESULT_NOT_FOUND,
+};
 
 /// <summary>
 /// ユーザIDを取得する
@@ -28,7 +34,7 @@ int GetUserID(char *cpBuffer, unsigned int nBufferSize)
 	// Sample
 
 	// UserIDに「My UserID」を設定する
-	cpUserID = (char*)"My UserID";
+	cpUserID = (char*)"EatMoreCake";
 	// Sample
 	//////////
 
@@ -127,57 +133,43 @@ int EndGame(GAMEENDINFO GameEndInfo)
 /// <param name="GameInfo">地図やコマの情報</param>
 /// <param name="pMovePiece">移動情報へのポインタ</param>
 /// <returns>結果（0:成功, その他:エラー）</returns>
-int MovePhase(GAMEINFO GameInfo, MOVEPIECEINFO *pMovePiece)
+int MovePhase( GAMEINFO GameInfo, MOVEPIECEINFO *pMovePiece )
 {
+	int				i;
+	PIECE*			pPiece = NULL;
+	unsigned int	uiPosX;
+	unsigned int	uiPosY;
+	unsigned char	ucDirection;
+
 	if( pMovePiece == NULL ) {
 		return	1;
 	}
-
-	//TODO: GameInfoを元にpMovePieceに移動データを入力する
-	//      動かせない場合はpMovePiece->nStepに0を設定する
-
-	//ランダムで移動する
-	const char	cDirection[] = {	DIRECTION_UP,
-									DIRECTION_DOWN,
-									DIRECTION_LEFT,
-									DIRECTION_RIGHT };
-	int		i;
-	PIECE	*pPiece;
-
-	memset(pMovePiece, 0, sizeof(MOVEPIECEINFO) );
-	pMovePiece->nOrder = GameInfo.nOrder;
+	else {
+		memset( pMovePiece, 0, sizeof( MOVEPIECEINFO ) );
+		pMovePiece->nOrder = GameInfo.nOrder;
+	}
 	
-	pPiece = NULL;
-	for( i=0 ; i<MAX_PIECE ; i++ ) {
-		if( GameInfo.nOrder == GameInfo.PlayerPiece[0].Piece[i].nOrder) {
-			pPiece = &GameInfo.PlayerPiece[0].Piece[i];
+	for( i = 0; i < MAX_PIECE; i++ ) {
+		if( GameInfo.nOrder == GameInfo.Player[0].Piece[i].nOrder ) {
 			break;
 		}
 	}
-
-	if( pPiece != NULL ) {
-		if( pPiece->nSleep == 0 ) {
-			if( GameInfo.PlayerPiece[0].nBootCount > 0 ) {
-				pMovePiece->nStep = (0 == (rand() % 50)) ? 2 : 1;
-			}
-			else {
-				pMovePiece->nStep = 1;
-			}
-
-			for( i = 0; i < pMovePiece->nStep; i++ ) {
-				pMovePiece->cDirection[i] = cDirection[rand() % 4];
-			}
-		}
-		else {
-			pMovePiece->nStep = 0;
+	if( i >= MAX_PIECE ) {
+		return 1;
+	}
+	else {
+		pPiece = &GameInfo.Player[0].Piece[i];
+		if( pPiece == NULL ) {
+			return 1;
 		}
 	}
-	// Sample
-	//////////
+
+	GetNextMapPosition( &uiPosX, &uiPosY, &GameInfo, pPiece );
+	ucDirection = ToDirection( pPiece, uiPosX, uiPosY );
+	SetMovePieceDirection( pMovePiece, ucDirection );
 
 	return	0;
 }
-
 
 /// <summary>
 /// 移動フェーズの結果通知
@@ -201,4 +193,208 @@ int MovePhaseResult( MOVEPIECERESULT	result )
 	//////////
 
 	return	0;
+}
+
+void GetNextMapPosition( unsigned int* uiPosX, unsigned int* uiPosY, GAMEINFO* pGameInfo, PIECE* pPiece )
+{
+	int				x;
+	int				y;
+
+	unsigned int	uiRangeXMin;
+	unsigned int	uiRangeXMax;
+	unsigned int	uiRangeYMin;
+	unsigned int	uiRangeYMax;
+
+	bool			bMovableArea[MAP_HEIGHT][MAP_WIDTH];
+
+	if( pGameInfo == NULL || pPiece == NULL ) {
+		return;
+	}
+	if( pPiece->nSleep != 0 ) {
+		*uiPosX = pPiece->nX;
+		*uiPosY = pPiece->nY;
+		return;
+	}
+
+	uiRangeXMin = (unsigned int)constrain( pPiece->nX - 1, 0, MAP_WIDTH  - 1 );
+	uiRangeXMax = (unsigned int)constrain( pPiece->nX + 1, 0, MAP_WIDTH  - 1 );
+	uiRangeYMin = (unsigned int)constrain( pPiece->nY - 1, 0, MAP_HEIGHT - 1 );
+	uiRangeYMax = (unsigned int)constrain( pPiece->nY + 1, 0, MAP_HEIGHT - 1 );
+
+	for( y = 0; y < MAP_HEIGHT; y++ ){
+		for( x = 0; x < MAP_WIDTH; x++ ){
+			bMovableArea[y][x] = false;
+		}
+	}
+	for( y = (int)uiRangeYMin; y <= (int)uiRangeYMax; y++ ) {
+		for( x = (int)uiRangeXMin; x <= (int)uiRangeXMax; x++ ) {
+			/* 移動範囲内で、自身も含めて味方のコマがいない場所 */
+			if( IsExistFriendPiece( &( pGameInfo->Player[0] ), x, y ) == false ) {
+				if( abs( x - pPiece->nX ) > 0 && abs( y - pPiece->nY ) > 0 ) {
+					/* 斜めの位置は、特殊コマで斜め移動回数が残っているときだけ移動可能 */
+					if( (pPiece->nType != PIECETYPE_COMMON) && (pGameInfo->Player[0].nBootCount > 0) ) {
+						bMovableArea[y][x] = true;
+					}
+				}
+				else{
+					bMovableArea[y][x] = true;
+				}
+			}
+		}
+	}
+
+	/* 移動すべき位置を探す */
+	switch( pPiece->nType ) {
+		case PIECETYPE_COMMON:
+			for( y = (int)uiRangeYMin; y <= (int)uiRangeYMax; y++ ) {
+				for( x = (int)uiRangeXMin; x <= (int)uiRangeXMax; x++ ) {
+					if( bMovableArea[y][x] == false ) {
+						continue;
+					}
+
+					if( GetTerritoryType( pGameInfo, x, y ) == TERRITORY_BLANK ) {
+						/* 1.未占領地 */
+						*uiPosX = x;
+						*uiPosY = y;
+						return;
+					}
+					else if( GetTerritoryType( pGameInfo, x, y ) == TERRITORY_ENEMY ) {
+						/* 2.敵占領地 */
+						*uiPosX = x;
+						*uiPosY = y;
+						return;
+					}
+					else if( GetTerritoryType( pGameInfo, x, y ) == TERRITORY_FRIEND ) {
+						/* 3.味方占領地 */
+						*uiPosX = x;
+						*uiPosY = y;
+						return;
+					}
+				}
+			}
+			break;
+		default:
+			for( y = (int)uiRangeYMin; y <= (int)uiRangeYMax; y++ ) {
+				for( x = (int)uiRangeXMin; x <= (int)uiRangeXMax; x++ ) {
+					if( bMovableArea[y][x] == false ) {
+						continue;
+					}
+
+					if( pGameInfo->Map[y][x].cTerritory == TERRITORY_BLANK ) {
+						/* 1.敵占領地 */
+						*uiPosX = x;
+						*uiPosY = y;
+						return;
+					}
+					else if( GetTerritoryType( pGameInfo, x, y ) == TERRITORY_BLANK ) {
+						/* 2.未占領地 */
+						*uiPosX = x;
+						*uiPosY = y;
+						return;
+					}
+					else if( GetTerritoryType( pGameInfo, x, y ) == TERRITORY_FRIEND ) {
+						/* 3.味方占領地 */
+						*uiPosX = x;
+						*uiPosY = y;
+						return;
+					}
+				}
+			}
+			break;
+	}
+
+	return;
+}
+
+int constrain( int value, int min, int max )
+{
+	int iConstrained;
+
+	if( min > value ) {
+		iConstrained = min;
+	}
+	else if( value > max ) {
+		iConstrained = max;
+	}
+	else {
+		iConstrained = value;
+	}
+
+	return iConstrained;
+}
+
+bool IsExistFriendPiece( PLAYERPIECE* pPlayer, int x, int y )
+{
+	int	i;
+
+	for( i = 0; i < MAX_PIECE; i++ ) {
+		if( pPlayer[0].Piece[i].nX == x && pPlayer[0].Piece[i].nY == y ) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+unsigned int GetTerritoryType( GAMEINFO* pGameInfo, int x, int y )
+{
+	if( pGameInfo->Map[y][x].cTerritory == TERRITORY_BLANK ) {
+		return TERRITORY_BLANK;
+	}
+	else {
+		for( int i = 0; i < MAX_PIECE; i++ ) {
+			if( pGameInfo->Player[0].Piece[i].nOrder == pGameInfo->Map[y][x].cTerritory ) {
+				return TERRITORY_FRIEND;
+			}
+			return TERRITORY_ENEMY;
+		}
+	}
+
+	return TERRITORY_BLANK;
+}
+
+unsigned char ToDirection( PIECE* pPiece, unsigned int iDestX, unsigned int iDestY )
+{
+	int iDistanceX;
+	int iDistanceY;
+	int	i = 0;
+	unsigned int uiDirection = DIRECTION_NONE;
+
+	iDistanceX = iDestX - pPiece->nX;
+	if( iDistanceX < 0 ) {
+		uiDirection |= DIRECTION_LEFT;
+	}
+	else if( iDistanceX > 0 ) {
+		uiDirection |= DIRECTION_RIGHT;
+	}
+
+	iDistanceY = iDestY - pPiece->nY;
+	if( iDistanceY < 0 ) {
+		uiDirection |= DIRECTION_UP;
+	}
+	else if( iDistanceY > 0 ) {
+		uiDirection |= DIRECTION_DOWN;
+	}
+
+	return uiDirection;
+}
+
+void SetMovePieceDirection( MOVEPIECEINFO *pMovePiece, unsigned char ucDirection )
+{
+	if( ucDirection & DIRECTION_UP ) {
+		pMovePiece->cDirection[pMovePiece->nStep] = DIRECTION_UP;
+		pMovePiece->nStep++;
+	}
+	if( ucDirection & DIRECTION_DOWN ) {
+		pMovePiece->cDirection[pMovePiece->nStep] = DIRECTION_DOWN;
+		pMovePiece->nStep++;
+	}
+	if( ucDirection & DIRECTION_RIGHT ) {
+		pMovePiece->cDirection[pMovePiece->nStep] = DIRECTION_RIGHT;
+		pMovePiece->nStep++;
+	}
+	if( ucDirection & DIRECTION_LEFT ) {
+		pMovePiece->cDirection[pMovePiece->nStep] = DIRECTION_LEFT;
+		pMovePiece->nStep++;
+	}
 }
