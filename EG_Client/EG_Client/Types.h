@@ -6,4 +6,5 @@
 #define INT16		short
 
 #define	DIRECTION	UINT8
+#define MAP_POS		int
 

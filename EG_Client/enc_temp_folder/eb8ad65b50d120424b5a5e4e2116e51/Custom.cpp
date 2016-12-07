@@ -185,6 +185,7 @@ int MovePhase( GAMEINFO GameInfo, MOVEPIECEINFO *pMovePiece )
 			PieceAppend[i].DestY = y;
 		}
 		else {
+			/* TODO:目的地まで移動 */
 			GetPiecePosForMove( pPiece, PieceAppend[i].DestX, PieceAppend[i].DestY, &x, &y );
 		}
 	}
