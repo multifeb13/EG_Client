@@ -179,13 +179,18 @@ int MovePhase( GAMEINFO GameInfo, MOVEPIECEINFO *pMovePiece )
 	}
 
 	if( PieceAppend[i].fFirstMove == false ) {
-		if( pPiece->nX == PieceAppend[i].DestX && pPiece->nY == PieceAppend[i].DestY ) {
-			GetPiecePosForNext( &GameInfo, pPiece, &x, &y );
-			PieceAppend[i].DestX = x;
-			PieceAppend[i].DestY = y;
+		if( pPiece->nType == PIECETYPE_COMMON ) {
+			if( pPiece->nX == PieceAppend[i].DestX && pPiece->nY == PieceAppend[i].DestY ) {
+				GetPiecePosForNext( &GameInfo, pPiece, &x, &y );
+				PieceAppend[i].DestX = x;
+				PieceAppend[i].DestY = y;
+			}
+			else {
+				GetPiecePosForMove( pPiece, PieceAppend[i].DestX, PieceAppend[i].DestY, &x, &y );
+			}
 		}
 		else {
-			GetPiecePosForMove( pPiece, PieceAppend[i].DestX, PieceAppend[i].DestY, &x, &y );
+			GetPiecePosForNext( &GameInfo, pPiece, &x, &y );
 		}
 	}
 	else {
@@ -194,7 +199,7 @@ int MovePhase( GAMEINFO GameInfo, MOVEPIECEINFO *pMovePiece )
 		PieceAppend[i].DestX = x;
 		PieceAppend[i].DestY = y;
 	}
-	ucDirection = ToDirection( pPiece, x, y );
+	ucDirection = ToDirection( &GameInfo, pPiece, x, y );
 	SetPieceDirection( pMovePiece, ucDirection );
 
 	return	0;
@@ -339,37 +344,56 @@ void GetPiecePosForMove( PIECE* pPiece,  MAP_POS DestX, MAP_POS DestY, MAP_POS* 
 	*pMapY = y;
 }
 
-DIRECTION ToDirection( PIECE* pPiece, MAP_POS iDestX, MAP_POS iDestY )
+DIRECTION ToDirection( GAMEINFO* pGameInfo, PIECE* pPiece, MAP_POS iDestX, MAP_POS iDestY )
 {
 	int iDistanceX;
 	int iDistanceY;
 
-	DIRECTION ucDirection = DIRECTION_NONE;
+	DIRECTION DirectionLR = DIRECTION_NONE;
+	DIRECTION DirectionUD = DIRECTION_NONE;
+	DIRECTION Direction;
 
 	iDistanceX = iDestX - pPiece->nX;
 	iDistanceY = iDestY - pPiece->nY;
 
 	if( iDistanceX > 0 ) {
-		ucDirection |= DIRECTION_RIGHT;
+		DirectionLR |= DIRECTION_RIGHT;
 	}
 	else if( iDistanceX < 0 ) {
-		ucDirection |= DIRECTION_LEFT;
+		DirectionLR |= DIRECTION_LEFT;
 	}
 	else {
 		/* Do Nothing */
 	}
 
 	if( iDistanceY > 0 ) {
-		ucDirection |= DIRECTION_DOWN;
+		DirectionUD |= DIRECTION_DOWN;
 	}
 	else if( iDistanceY < 0 ) {
-		ucDirection |= DIRECTION_UP;
+		DirectionUD |= DIRECTION_UP;
 	}
 	else {
 		/* Do Nothing */
 	}
 
-	return ucDirection;
+	if( IsPossibleBoostMove( pGameInfo, pPiece ) ) {
+		Direction = DirectionLR | DirectionUD;
+	}
+	else {
+		if( DirectionLR == DIRECTION_NONE || DirectionUD == DIRECTION_NONE ) {
+			Direction = DirectionLR | DirectionUD;
+		}
+		else {
+			if( pGameInfo->nTurn % 2 ) {
+				Direction = DirectionLR;
+			}
+			else {
+				Direction = DirectionUD;
+			}
+		}
+	}
+
+	return Direction;
 }
 
 void SetPieceDirection( MOVEPIECEINFO *pMovePiece, DIRECTION ucDirection )
@@ -390,24 +414,6 @@ void SetPieceDirection( MOVEPIECEINFO *pMovePiece, DIRECTION ucDirection )
 		pMovePiece->cDirection[pMovePiece->nStep] = DIRECTION_LEFT;
 		pMovePiece->nStep++;
 	}
-}
-
-bool IsMovableTerritory( GAMEINFO* pGameInfo, PIECE* pPiece, int x, int y )
-{
-	/* 移動範囲内で、自身も含めて味方のコマがいない場所 */
-	if( IsExistFriendPiece( &( pGameInfo->Player[0] ), x, y ) == false ) {
-		if( abs( x - pPiece->nX ) > 0 && abs( y - pPiece->nY ) > 0 ) {
-			/* 斜めの位置は、特殊コマで斜め移動回数が残っているときだけ移動可能 */
-			if( (pPiece->nType != PIECETYPE_COMMON) && (pGameInfo->Player[0].nBootCount > 0) ) {
-				return true;
-			}
-		}
-		else{
-			return true;
-		}
-	}
-
-	return false;
 }
 
 void FindNearTerritory( GAMEINFO* pGameInfo, PIECE* pPiece, int TerritoryType, MAP_POS* pMapX, MAP_POS* pMapY )
@@ -433,7 +439,7 @@ void FindNearTerritory( GAMEINFO* pGameInfo, PIECE* pPiece, int TerritoryType, M
 			if( x == pPiece->nX && y == pPiece->nY ) {
 				continue;
 			}
-			if( IsMovableTerritory( pGameInfo, pPiece, x, y ) == false ) {
+			if( IsExistFriendPiece( &( pGameInfo->Player[0] ), x, y ) ) {
 				continue;
 			}
 
@@ -477,6 +483,13 @@ void FindNearEnemy( GAMEINFO* pGameInfo, PIECE* pPiece, MAP_POS* pMapX, MAP_POS*
 
 	for( y = 0; y < MAP_HEIGHT; y++ ) {
 		for( x = 0; x < MAP_WIDTH; x++ ) {
+			if( x == pPiece->nX && y == pPiece->nY ) {
+				continue;
+			}
+			if( IsExistFriendPiece( &( pGameInfo->Player[0] ), x, y )  ) {
+				continue;
+			}
+
 			if( GetTerritoryType( pGameInfo, x, y ) & TERRITORY_EXIST_ENEMY ) {
 				iDistanceX = pPiece->nX - x;
 				iDistanceY = pPiece->nY - y;
@@ -500,4 +513,13 @@ void FindNearEnemy( GAMEINFO* pGameInfo, PIECE* pPiece, MAP_POS* pMapX, MAP_POS*
 		*pMapX = pPiece->nX;
 		*pMapY = pPiece->nY;
 	}
+}
+
+bool IsPossibleBoostMove( GAMEINFO* pGameInfo, PIECE* pPiece )
+{
+	/* 斜めの位置は、特殊コマで斜め移動回数が残っているときだけ移動可能 */
+	if( ( pPiece->nType != PIECETYPE_COMMON ) && ( pGameInfo->Player[0].nBootCount > 0 ) ) {
+		return true;
+	}
+	return false;
 }
