@@ -479,7 +479,12 @@ void FindNearEnemy( GAMEINFO* pGameInfo, PIECE* pPiece, MAP_POS* pMapX, MAP_POS*
 	UINT	uiNearPosX = 0;
 	UINT	uiNearPosY = 0;
 
+	UINT	uiPieceOrder;
+	UINT	uiEnemyOrder;
+
 	bool	fFound = FALSE;
+
+	uiPieceOrder = pPiece->nOrder;
 
 	for( y = 0; y < MAP_HEIGHT; y++ ) {
 		for( x = 0; x < MAP_WIDTH; x++ ) {
@@ -495,6 +500,18 @@ void FindNearEnemy( GAMEINFO* pGameInfo, PIECE* pPiece, MAP_POS* pMapX, MAP_POS*
 				iDistanceY = pPiece->nY - y;
 				uiDistanceXY = abs( iDistanceX ) + abs( iDistanceY );
 
+				if( uiPieceOrder == ( MAX_GAMEPLAYER * MAX_PIECE ) ) {
+					if( uiDistanceXY != 1 ) {
+						continue;
+					}
+				}
+				else{
+					uiEnemyOrder = pGameInfo->Map[y][x].cTerritory;
+					if( uiEnemyOrder < uiPieceOrder ) {
+						continue;
+					}
+				}
+
 				if( uiNearDistanceXY > uiDistanceXY && uiDistanceXY != 0 ) {
 					fFound = TRUE;
 					uiNearDistanceXY = uiDistanceXY;
@@ -508,6 +525,25 @@ void FindNearEnemy( GAMEINFO* pGameInfo, PIECE* pPiece, MAP_POS* pMapX, MAP_POS*
 	if( fFound ) {
 		*pMapX = uiNearPosX;
 		*pMapY = uiNearPosY;
+	}
+	else {
+		FindNearTerritory( pGameInfo, pPiece, TERRITORY_BLANK, pMapX, pMapY );
+	}
+}
+
+void FindEnemy( GAMEINFO* pGameInfo, PIECE* pPiece, UINT8 PieceType, MAP_POS* pMapX, MAP_POS* pMapY )
+{
+	int		i;
+
+	for( i = 0; i < MAX_PIECE; i++ ){
+		if( pGameInfo->Player[1].Piece[i].nType == PieceType ) {
+			break;
+		}
+	}
+
+	if( i < MAX_PIECE ){
+		*pMapX = pGameInfo->Player[1].Piece[i].nX;
+		*pMapY = pGameInfo->Player[1].Piece[i].nY;
 	}
 	else {
 		*pMapX = pPiece->nX;

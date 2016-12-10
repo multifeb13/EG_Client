@@ -21,6 +21,8 @@ int MovePhaseResult(MOVEPIECERESULT result);
 UINT		GetTerritoryType( GAMEINFO* pGameInfo, int x, int y );
 
 /* Piece */
+bool		IsExistFriendPiece( PLAYERPIECE* pPlayer, int x, int y );
+
 void		GetPiecePosForNext( GAMEINFO* pGameInfo, PIECE* pPiece, MAP_POS* pMapX, MAP_POS* pMapY );
 void		GetPiecePosForMove( PIECE* pPiece, MAP_POS DestX, MAP_POS DestY, MAP_POS* pMapX, MAP_POS* pMapY );
 
@@ -30,6 +32,7 @@ void		SetPieceDirection( MOVEPIECEINFO *pMovePiece, DIRECTION ucDirection );
 
 void		FindNearTerritory( GAMEINFO* pGameInfo, PIECE* pPiece, int TerritoryType, MAP_POS* pMapX, MAP_POS* pMapY );
 void		FindNearEnemy( GAMEINFO* pGameInfo, PIECE* pPiece, MAP_POS* pMapX, MAP_POS* pMapY );
+void		FindEnemy( GAMEINFO* pGameInfo, PIECE* pPiece, UINT8 PieceType, MAP_POS* pMapX, MAP_POS* pMapY );
 
 /* etc */
 bool		IsPossibleBoostMove( GAMEINFO* pGameInfo, PIECE* pPiece );
