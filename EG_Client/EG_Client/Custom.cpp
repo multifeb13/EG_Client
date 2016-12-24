@@ -229,193 +229,6 @@ int MovePhaseResult( MOVEPIECERESULT	result )
 	return	0;
 }
 
-int constrain( int value, int min, int max )
-{
-	int iConstrained;
-
-	if( min > value ) {
-		iConstrained = min;
-	}
-	else if( value > max ) {
-		iConstrained = max;
-	}
-	else {
-		iConstrained = value;
-	}
-
-	return iConstrained;
-}
-
-bool IsExistFriendPiece( PLAYERPIECE* pPlayer, int x, int y )
-{
-	int	i;
-
-	for( i = 0; i < MAX_PIECE; i++ ) {
-		if( pPlayer[0].Piece[i].nX == x && pPlayer[0].Piece[i].nY == y ) {
-			return true;
-		}
-	}
-
-	return false;
-}
-
-UINT GetTerritoryType( GAMEINFO* pGameInfo, int x, int y )
-{
-	int	i;
-	int	iTerritoryType = TERRITORY_BLANK;
-
-	if( pGameInfo->Map[y][x].cTerritory == TERRITORY_BLANK ) {
-		iTerritoryType |= TERRITORY_BLANK;
-	}
-	else {
-		for( i = 0; i < MAX_PIECE; i++ ) {
-			if( pGameInfo->Player[0].Piece[i].nOrder == pGameInfo->Map[y][x].cTerritory ) {
-				iTerritoryType |= TERRITORY_FRIEND;
-			}
-		}
-		if( i >= MAX_PIECE ) {
-			iTerritoryType |= TERRITORY_ENEMY;
-		}
-	}
-
-	for( i = 0; i < MAX_PIECE; i++ ) {
-		if( pGameInfo->Player[0].Piece[i].nX == x && pGameInfo->Player[0].Piece[i].nY == y ) {
-			iTerritoryType |= TERRITORY_EXIST_FRIEND;
-			break;
-		}
-		else if( pGameInfo->Player[1].Piece[i].nX == x && pGameInfo->Player[1].Piece[i].nY == y ) {
-			iTerritoryType |= TERRITORY_EXIST_ENEMY;
-			break;
-		}
-	}
-
-	return iTerritoryType;
-}
-
-void GetPiecePosForNext( GAMEINFO* pGameInfo, PIECE* pPiece, MAP_POS* pMapX, MAP_POS* pMapY )
-{
-	switch( pPiece->nType ) {
-		case PIECETYPE_COMMON:
-			FindNearTerritory( pGameInfo, pPiece, TERRITORY_BLANK, pMapX, pMapY );
-			break;
-		default:
-			FindNearEnemy( pGameInfo, pPiece, pMapX, pMapY );
-			break;
-	}
-}
-
-void GetPiecePosForMove( PIECE* pPiece,  MAP_POS DestX, MAP_POS DestY, MAP_POS* pMapX, MAP_POS* pMapY )
-{
-	MAP_POS	x;
-	MAP_POS	y;
-
-	INT8	iDistanceX;
-	INT8	iDistanceY;
-
-	x = pPiece->nX;
-	y = pPiece->nY;
-	iDistanceX = DestX - x;
-	iDistanceY = DestY - y;
-
-	if( y != DestY ) {
-		if( iDistanceY > 0 ) {
-			y++;
-		}
-		else if( iDistanceY < 0 ) {
-			y--;
-		}
-		else {
-			/* Do Nothing */
-		}
-	}
-	else {
-		if( iDistanceX > 0 ) {
-			x++;
-		}
-		else if( iDistanceX < 0 ) {
-			x--;
-		}
-		else {
-			/* Do Nothing */
-		}
-	}
-
-	*pMapX = x;
-	*pMapY = y;
-}
-
-DIRECTION ToDirection( GAMEINFO* pGameInfo, PIECE* pPiece, MAP_POS iDestX, MAP_POS iDestY )
-{
-	int iDistanceX;
-	int iDistanceY;
-
-	DIRECTION DirectionLR = DIRECTION_NONE;
-	DIRECTION DirectionUD = DIRECTION_NONE;
-	DIRECTION Direction;
-
-	iDistanceX = iDestX - pPiece->nX;
-	iDistanceY = iDestY - pPiece->nY;
-
-	if( iDistanceX > 0 ) {
-		DirectionLR |= DIRECTION_RIGHT;
-	}
-	else if( iDistanceX < 0 ) {
-		DirectionLR |= DIRECTION_LEFT;
-	}
-	else {
-		/* Do Nothing */
-	}
-
-	if( iDistanceY > 0 ) {
-		DirectionUD |= DIRECTION_DOWN;
-	}
-	else if( iDistanceY < 0 ) {
-		DirectionUD |= DIRECTION_UP;
-	}
-	else {
-		/* Do Nothing */
-	}
-
-	if( IsPossibleBoostMove( pGameInfo, pPiece ) ) {
-		Direction = DirectionLR | DirectionUD;
-	}
-	else {
-		if( DirectionLR == DIRECTION_NONE || DirectionUD == DIRECTION_NONE ) {
-			Direction = DirectionLR | DirectionUD;
-		}
-		else {
-			if( pGameInfo->nTurn % 2 ) {
-				Direction = DirectionLR;
-			}
-			else {
-				Direction = DirectionUD;
-			}
-		}
-	}
-
-	return Direction;
-}
-
-void SetPieceDirection( MOVEPIECEINFO *pMovePiece, DIRECTION ucDirection )
-{
-	if( ucDirection & DIRECTION_UP ) {
-		pMovePiece->cDirection[pMovePiece->nStep] = DIRECTION_UP;
-		pMovePiece->nStep++;
-	}
-	if( ucDirection & DIRECTION_DOWN ) {
-		pMovePiece->cDirection[pMovePiece->nStep] = DIRECTION_DOWN;
-		pMovePiece->nStep++;
-	}
-	if( ucDirection & DIRECTION_RIGHT ) {
-		pMovePiece->cDirection[pMovePiece->nStep] = DIRECTION_RIGHT;
-		pMovePiece->nStep++;
-	}
-	if( ucDirection & DIRECTION_LEFT ) {
-		pMovePiece->cDirection[pMovePiece->nStep] = DIRECTION_LEFT;
-		pMovePiece->nStep++;
-	}
-}
-
 void FindNearTerritory( GAMEINFO* pGameInfo, PIECE* pPiece, int TerritoryType, MAP_POS* pMapX, MAP_POS* pMapY )
 {
 	int		x;
@@ -551,6 +364,176 @@ void FindEnemy( GAMEINFO* pGameInfo, PIECE* pPiece, UINT8 PieceType, MAP_POS* pM
 	}
 }
 
+UINT GetTerritoryType( GAMEINFO* pGameInfo, int x, int y )
+{
+	int	i;
+	int	iTerritoryType = TERRITORY_BLANK;
+
+	if( pGameInfo->Map[y][x].cTerritory == TERRITORY_BLANK ) {
+		iTerritoryType |= TERRITORY_BLANK;
+	}
+	else {
+		for( i = 0; i < MAX_PIECE; i++ ) {
+			if( pGameInfo->Player[0].Piece[i].nOrder == pGameInfo->Map[y][x].cTerritory ) {
+				iTerritoryType |= TERRITORY_FRIEND;
+			}
+		}
+		if( i >= MAX_PIECE ) {
+			iTerritoryType |= TERRITORY_ENEMY;
+		}
+	}
+
+	for( i = 0; i < MAX_PIECE; i++ ) {
+		if( pGameInfo->Player[0].Piece[i].nX == x && pGameInfo->Player[0].Piece[i].nY == y ) {
+			iTerritoryType |= TERRITORY_EXIST_FRIEND;
+			break;
+		}
+		else if( pGameInfo->Player[1].Piece[i].nX == x && pGameInfo->Player[1].Piece[i].nY == y ) {
+			iTerritoryType |= TERRITORY_EXIST_ENEMY;
+			break;
+		}
+	}
+
+	return iTerritoryType;
+}
+
+bool IsExistFriendPiece( PLAYERPIECE* pPlayer, int x, int y )
+{
+	int	i;
+
+	for( i = 0; i < MAX_PIECE; i++ ) {
+		if( pPlayer[0].Piece[i].nX == x && pPlayer[0].Piece[i].nY == y ) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void GetPiecePosForNext( GAMEINFO* pGameInfo, PIECE* pPiece, MAP_POS* pMapX, MAP_POS* pMapY )
+{
+	switch( pPiece->nType ) {
+		case PIECETYPE_COMMON:
+			FindNearTerritory( pGameInfo, pPiece, TERRITORY_BLANK, pMapX, pMapY );
+			break;
+		default:
+			FindNearEnemy( pGameInfo, pPiece, pMapX, pMapY );
+			break;
+	}
+}
+
+void GetPiecePosForMove( PIECE* pPiece,  MAP_POS DestX, MAP_POS DestY, MAP_POS* pMapX, MAP_POS* pMapY )
+{
+	MAP_POS	x;
+	MAP_POS	y;
+
+	INT8	iDistanceX;
+	INT8	iDistanceY;
+
+	x = pPiece->nX;
+	y = pPiece->nY;
+	iDistanceX = DestX - x;
+	iDistanceY = DestY - y;
+
+	if( y != DestY ) {
+		if( iDistanceY > 0 ) {
+			y++;
+		}
+		else if( iDistanceY < 0 ) {
+			y--;
+		}
+		else {
+			/* Do Nothing */
+		}
+	}
+	else {
+		if( iDistanceX > 0 ) {
+			x++;
+		}
+		else if( iDistanceX < 0 ) {
+			x--;
+		}
+		else {
+			/* Do Nothing */
+		}
+	}
+
+	*pMapX = x;
+	*pMapY = y;
+}
+
+DIRECTION ToDirection( GAMEINFO* pGameInfo, PIECE* pPiece, MAP_POS iDestX, MAP_POS iDestY )
+{
+	int iDistanceX;
+	int iDistanceY;
+
+	DIRECTION DirectionLR = DIRECTION_NONE;
+	DIRECTION DirectionUD = DIRECTION_NONE;
+	DIRECTION Direction;
+
+	iDistanceX = iDestX - pPiece->nX;
+	iDistanceY = iDestY - pPiece->nY;
+
+	if( iDistanceX > 0 ) {
+		DirectionLR |= DIRECTION_RIGHT;
+	}
+	else if( iDistanceX < 0 ) {
+		DirectionLR |= DIRECTION_LEFT;
+	}
+	else {
+		/* Do Nothing */
+	}
+
+	if( iDistanceY > 0 ) {
+		DirectionUD |= DIRECTION_DOWN;
+	}
+	else if( iDistanceY < 0 ) {
+		DirectionUD |= DIRECTION_UP;
+	}
+	else {
+		/* Do Nothing */
+	}
+
+	if( IsPossibleBoostMove( pGameInfo, pPiece ) ) {
+		Direction = DirectionLR | DirectionUD;
+	}
+	else {
+		if( DirectionLR == DIRECTION_NONE || DirectionUD == DIRECTION_NONE ) {
+			Direction = DirectionLR | DirectionUD;
+		}
+		else {
+			if( pGameInfo->nTurn % 2 ) {
+				Direction = DirectionLR;
+			}
+			else {
+				Direction = DirectionUD;
+			}
+		}
+	}
+
+	return Direction;
+}
+
+void SetPieceDirection( MOVEPIECEINFO *pMovePiece, DIRECTION ucDirection )
+{
+	if( ucDirection & DIRECTION_UP ) {
+		pMovePiece->cDirection[pMovePiece->nStep] = DIRECTION_UP;
+		pMovePiece->nStep++;
+	}
+	if( ucDirection & DIRECTION_DOWN ) {
+		pMovePiece->cDirection[pMovePiece->nStep] = DIRECTION_DOWN;
+		pMovePiece->nStep++;
+	}
+	if( ucDirection & DIRECTION_RIGHT ) {
+		pMovePiece->cDirection[pMovePiece->nStep] = DIRECTION_RIGHT;
+		pMovePiece->nStep++;
+	}
+	if( ucDirection & DIRECTION_LEFT ) {
+		pMovePiece->cDirection[pMovePiece->nStep] = DIRECTION_LEFT;
+		pMovePiece->nStep++;
+	}
+}
+
 bool IsPossibleBoostMove( GAMEINFO* pGameInfo, PIECE* pPiece )
 {
 	/* 斜めの位置は、特殊コマで斜め移動回数が残っているときだけ移動可能 */
@@ -558,4 +541,21 @@ bool IsPossibleBoostMove( GAMEINFO* pGameInfo, PIECE* pPiece )
 		return true;
 	}
 	return false;
+}
+
+int constrain( int value, int min, int max )
+{
+	int iConstrained;
+
+	if( min > value ) {
+		iConstrained = min;
+	}
+	else if( value > max ) {
+		iConstrained = max;
+	}
+	else {
+		iConstrained = value;
+	}
+
+	return iConstrained;
 }
