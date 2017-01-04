@@ -69,11 +69,11 @@ int GetUserID(char *cpBuffer, unsigned int nBufferSize)
 int StartGame(void)
 {
 	//TODO: 初期化が必要な場合はここで行う
-	int		i;
-	int		iPieceNum;
+	int	i;
+	int	iPieceAppendNum;
 
-	iPieceNum = sizeof( PieceAppend ) / sizeof( PieceAppend[0] );
-	for( i = 0; i < iPieceNum; i++ ) {
+	iPieceAppendNum = sizeof( PieceAppend ) / sizeof( PieceAppend[0] );
+	for( i = 0; i < iPieceAppendNum; i++ ) {
 		PieceAppend[i].fFirstMove = true;
 		PieceAppend[i].DestX = 0;
 		PieceAppend[i].DestY = 0;
@@ -109,6 +109,7 @@ int EndGame(GAMEENDINFO GameEndInfo)
 	
 	//ゲームの結果を表示する
 	char	*cpState;
+
 	switch (GameEndInfo.nWinner)
 	{
 		case GAMERESULT_WIN:
@@ -137,7 +138,6 @@ int EndGame(GAMEENDINFO GameEndInfo)
 	return	0;
 }
 
-
 /// <summary>
 /// 移動フェーズ通知
 /// </summary>
@@ -147,60 +147,57 @@ int EndGame(GAMEENDINFO GameEndInfo)
 int MovePhase( GAMEINFO GameInfo, MOVEPIECEINFO *pMovePiece )
 {
 	int			i;
-	PIECE*		pPiece = NULL;
+	PIECE*		pPiece;
 	MAP_POS		x;
 	MAP_POS		y;
-	DIRECTION	ucDirection;
+	DIRECTION	Direction;
 
 	if( pMovePiece == NULL ) {
 		return	1;
 	}
-	else {
-		memset( pMovePiece, 0, sizeof( MOVEPIECEINFO ) );
-		pMovePiece->nOrder = GameInfo.nOrder;
-	}
+	memset( pMovePiece, 0, sizeof( MOVEPIECEINFO ) );
+	pMovePiece->nOrder = GameInfo.nOrder;
 	
 	for( i = 0; i < MAX_PIECE; i++ ) {
-		if( GameInfo.nOrder == GameInfo.Player[0].Piece[i].nOrder ) {
+		if( pMovePiece->nOrder == GameInfo.Player[0].Piece[i].nOrder ) {
 			break;
 		}
 	}
 	if( i >= MAX_PIECE ) {
 		return 1;
 	}
-	else {
-		pPiece = &GameInfo.Player[0].Piece[i];
-		if( pPiece == NULL ) {
-			return 1;
-		}
-		else if( pPiece->nSleep > 0 ) {
-			return 0;
-		}
+
+	pPiece = &GameInfo.Player[0].Piece[i];
+	if( pPiece == NULL ) {
+		return 1;
+	}
+	else if( pPiece->nSleep > 0 ) {
+		return 0;
 	}
 
 	if( PieceAppend[i].fFirstMove == false ) {
 		if( pPiece->nType == PIECETYPE_COMMON ) {
 			if( pPiece->nX == PieceAppend[i].DestX && pPiece->nY == PieceAppend[i].DestY ) {
-				GetPiecePosForNext( &GameInfo, pPiece, &x, &y );
+				GetNextPieceDestination( &GameInfo, pPiece, &x, &y );
 				PieceAppend[i].DestX = x;
 				PieceAppend[i].DestY = y;
 			}
 			else {
-				GetPiecePosForMove( pPiece, PieceAppend[i].DestX, PieceAppend[i].DestY, &x, &y );
+				GetNextPieceMapPosition( pPiece, PieceAppend[i].DestX, PieceAppend[i].DestY, &x, &y );
 			}
 		}
 		else {
-			GetPiecePosForNext( &GameInfo, pPiece, &x, &y );
+			GetNextPieceDestination( &GameInfo, pPiece, &x, &y );
 		}
 	}
 	else {
-		GetPiecePosForNext( &GameInfo, pPiece, &x, &y );
+		GetNextPieceDestination( &GameInfo, pPiece, &x, &y );
 		PieceAppend[i].fFirstMove = false;
 		PieceAppend[i].DestX = x;
 		PieceAppend[i].DestY = y;
 	}
-	ucDirection = ToDirection( &GameInfo, pPiece, x, y );
-	SetPieceDirection( pMovePiece, ucDirection );
+	Direction = ToDirection( &GameInfo, pPiece, x, y );
+	SetPieceDirection( pMovePiece, Direction );
 
 	return	0;
 }
@@ -229,20 +226,20 @@ int MovePhaseResult( MOVEPIECERESULT	result )
 	return	0;
 }
 
-void FindNearTerritory( GAMEINFO* pGameInfo, PIECE* pPiece, int TerritoryType, MAP_POS* pMapX, MAP_POS* pMapY )
+void FindNearTerritory( GAMEINFO* pGameInfo, PIECE* pPiece, TERRITORY_TYPE TerritoryType, MAP_POS* pMapX, MAP_POS* pMapY )
 {
-	int		x;
-	int		y;
+	int				x;
+	int				y;
 
-	int		iDistanceX;
-	int		iDistanceY;
-	UINT	uiDistanceXY;
+	int				iDistanceX;
+	int				iDistanceY;
+	unsigned int	uiDistanceXY;
 
-	UINT	uiNeariDistanceXY = 9999;
-	UINT	uiNearPosX = 0;
-	UINT	uiNearPosY = 0;
+	unsigned int	uiNeariDistanceXY = UINT_MAX;
+	unsigned int	uiNearPosX = 0;
+	unsigned int	uiNearPosY = 0;
 
-	bool	fFound = FALSE;
+	bool	fFound = false;
 
 	for( y = 0; y < MAP_HEIGHT; y++ ) {
 		for( x = 0; x < MAP_WIDTH; x++ ) {
@@ -261,7 +258,7 @@ void FindNearTerritory( GAMEINFO* pGameInfo, PIECE* pPiece, int TerritoryType, M
 			uiDistanceXY = abs( iDistanceX ) + abs( iDistanceY );
 
 			if( uiNeariDistanceXY > uiDistanceXY ) {
-				fFound = TRUE;
+				fFound = true;
 				uiNeariDistanceXY = uiDistanceXY;
 				uiNearPosX = x;
 				uiNearPosY = y;
@@ -281,21 +278,21 @@ void FindNearTerritory( GAMEINFO* pGameInfo, PIECE* pPiece, int TerritoryType, M
 
 void FindNearEnemy( GAMEINFO* pGameInfo, PIECE* pPiece, MAP_POS* pMapX, MAP_POS* pMapY )
 {
-	int		x;
-	int		y;
+	int				x;
+	int				y;
 
-	int		iDistanceX;
-	int		iDistanceY;
-	UINT	uiDistanceXY;
+	int				iDistanceX;
+	int				iDistanceY;
+	unsigned int	uiDistanceXY;
 
-	UINT	uiNearDistanceXY = 9999;
-	UINT	uiNearPosX = 0;
-	UINT	uiNearPosY = 0;
+	unsigned int	uiNearDistanceXY = UINT_MAX;
+	unsigned int	uiNearPosX = 0;
+	unsigned int	uiNearPosY = 0;
 
-	UINT	uiPieceOrder;
-	UINT	uiEnemyOrder;
+	unsigned int	uiPieceOrder;
+	unsigned int	uiEnemyOrder;
 
-	bool	fFound = FALSE;
+	bool			fFound = false;
 
 	uiPieceOrder = pPiece->nOrder;
 
@@ -326,7 +323,7 @@ void FindNearEnemy( GAMEINFO* pGameInfo, PIECE* pPiece, MAP_POS* pMapX, MAP_POS*
 				}
 
 				if( uiNearDistanceXY > uiDistanceXY && uiDistanceXY != 0 ) {
-					fFound = TRUE;
+					fFound = true;
 					uiNearDistanceXY = uiDistanceXY;
 					uiNearPosX = x;
 					uiNearPosY = y;
@@ -344,73 +341,7 @@ void FindNearEnemy( GAMEINFO* pGameInfo, PIECE* pPiece, MAP_POS* pMapX, MAP_POS*
 	}
 }
 
-void FindEnemy( GAMEINFO* pGameInfo, PIECE* pPiece, UINT8 PieceType, MAP_POS* pMapX, MAP_POS* pMapY )
-{
-	int		i;
-
-	for( i = 0; i < MAX_PIECE; i++ ){
-		if( pGameInfo->Player[1].Piece[i].nType == PieceType ) {
-			break;
-		}
-	}
-
-	if( i < MAX_PIECE ){
-		*pMapX = pGameInfo->Player[1].Piece[i].nX;
-		*pMapY = pGameInfo->Player[1].Piece[i].nY;
-	}
-	else {
-		*pMapX = pPiece->nX;
-		*pMapY = pPiece->nY;
-	}
-}
-
-UINT GetTerritoryType( GAMEINFO* pGameInfo, int x, int y )
-{
-	int	i;
-	int	iTerritoryType = TERRITORY_BLANK;
-
-	if( pGameInfo->Map[y][x].cTerritory == TERRITORY_BLANK ) {
-		iTerritoryType |= TERRITORY_BLANK;
-	}
-	else {
-		for( i = 0; i < MAX_PIECE; i++ ) {
-			if( pGameInfo->Player[0].Piece[i].nOrder == pGameInfo->Map[y][x].cTerritory ) {
-				iTerritoryType |= TERRITORY_FRIEND;
-			}
-		}
-		if( i >= MAX_PIECE ) {
-			iTerritoryType |= TERRITORY_ENEMY;
-		}
-	}
-
-	for( i = 0; i < MAX_PIECE; i++ ) {
-		if( pGameInfo->Player[0].Piece[i].nX == x && pGameInfo->Player[0].Piece[i].nY == y ) {
-			iTerritoryType |= TERRITORY_EXIST_FRIEND;
-			break;
-		}
-		else if( pGameInfo->Player[1].Piece[i].nX == x && pGameInfo->Player[1].Piece[i].nY == y ) {
-			iTerritoryType |= TERRITORY_EXIST_ENEMY;
-			break;
-		}
-	}
-
-	return iTerritoryType;
-}
-
-bool IsExistFriendPiece( PLAYERPIECE* pPlayer, int x, int y )
-{
-	int	i;
-
-	for( i = 0; i < MAX_PIECE; i++ ) {
-		if( pPlayer[0].Piece[i].nX == x && pPlayer[0].Piece[i].nY == y ) {
-			return true;
-		}
-	}
-
-	return false;
-}
-
-void GetPiecePosForNext( GAMEINFO* pGameInfo, PIECE* pPiece, MAP_POS* pMapX, MAP_POS* pMapY )
+void GetNextPieceDestination( GAMEINFO* pGameInfo, PIECE* pPiece, MAP_POS* pMapX, MAP_POS* pMapY )
 {
 	switch( pPiece->nType ) {
 		case PIECETYPE_COMMON:
@@ -422,13 +353,13 @@ void GetPiecePosForNext( GAMEINFO* pGameInfo, PIECE* pPiece, MAP_POS* pMapX, MAP
 	}
 }
 
-void GetPiecePosForMove( PIECE* pPiece,  MAP_POS DestX, MAP_POS DestY, MAP_POS* pMapX, MAP_POS* pMapY )
+void GetNextPieceMapPosition( PIECE* pPiece,  MAP_POS DestX, MAP_POS DestY, MAP_POS* pMapX, MAP_POS* pMapY )
 {
 	MAP_POS	x;
 	MAP_POS	y;
 
-	INT8	iDistanceX;
-	INT8	iDistanceY;
+	int		iDistanceX;
+	int		iDistanceY;
 
 	x = pPiece->nX;
 	y = pPiece->nY;
@@ -462,14 +393,60 @@ void GetPiecePosForMove( PIECE* pPiece,  MAP_POS DestX, MAP_POS DestY, MAP_POS* 
 	*pMapY = y;
 }
 
+TERRITORY_TYPE GetTerritoryType( GAMEINFO* pGameInfo, int x, int y )
+{
+	int				i;
+	TERRITORY_TYPE	TerritoryType = TERRITORY_BLANK;
+
+	if( pGameInfo->Map[y][x].cTerritory == TERRITORY_BLANK ) {
+		TerritoryType |= TERRITORY_BLANK;
+	}
+	else {
+		for( i = 0; i < MAX_PIECE; i++ ) {
+			if( pGameInfo->Player[0].Piece[i].nOrder == pGameInfo->Map[y][x].cTerritory ) {
+				TerritoryType |= TERRITORY_FRIEND;
+			}
+		}
+		if( i >= MAX_PIECE ) {
+			TerritoryType |= TERRITORY_ENEMY;
+		}
+	}
+
+	for( i = 0; i < MAX_PIECE; i++ ) {
+		if( pGameInfo->Player[0].Piece[i].nX == x && pGameInfo->Player[0].Piece[i].nY == y ) {
+			TerritoryType |= TERRITORY_EXIST_FRIEND;
+			break;
+		}
+		else if( pGameInfo->Player[1].Piece[i].nX == x && pGameInfo->Player[1].Piece[i].nY == y ) {
+			TerritoryType |= TERRITORY_EXIST_ENEMY;
+			break;
+		}
+	}
+
+	return TerritoryType;
+}
+
+bool IsExistFriendPiece( PLAYERPIECE* pPlayer, int x, int y )
+{
+	int	i;
+
+	for( i = 0; i < MAX_PIECE; i++ ) {
+		if( pPlayer[0].Piece[i].nX == x && pPlayer[0].Piece[i].nY == y ) {
+			return true;
+		}
+	}
+
+	return false;
+}
+
 DIRECTION ToDirection( GAMEINFO* pGameInfo, PIECE* pPiece, MAP_POS iDestX, MAP_POS iDestY )
 {
-	int iDistanceX;
-	int iDistanceY;
+	int			iDistanceX;
+	int			iDistanceY;
 
-	DIRECTION DirectionLR = DIRECTION_NONE;
-	DIRECTION DirectionUD = DIRECTION_NONE;
-	DIRECTION Direction;
+	DIRECTION	DirectionLR = DIRECTION_NONE;
+	DIRECTION	DirectionUD = DIRECTION_NONE;
+	DIRECTION	Direction;
 
 	iDistanceX = iDestX - pPiece->nX;
 	iDistanceY = iDestY - pPiece->nY;
@@ -536,26 +513,9 @@ void SetPieceDirection( MOVEPIECEINFO *pMovePiece, DIRECTION ucDirection )
 
 bool IsPossibleBoostMove( GAMEINFO* pGameInfo, PIECE* pPiece )
 {
-	/* 斜めの位置は、特殊コマで斜め移動回数が残っているときだけ移動可能 */
+	/* 斜めの位置は、特殊コマで斜め移動回数が残っているときだけ移動可能とする */
 	if( ( pPiece->nType != PIECETYPE_COMMON ) && ( pGameInfo->Player[0].nBootCount > 0 ) ) {
 		return true;
 	}
 	return false;
-}
-
-int constrain( int value, int min, int max )
-{
-	int iConstrained;
-
-	if( min > value ) {
-		iConstrained = min;
-	}
-	else if( value > max ) {
-		iConstrained = max;
-	}
-	else {
-		iConstrained = value;
-	}
-
-	return iConstrained;
 }

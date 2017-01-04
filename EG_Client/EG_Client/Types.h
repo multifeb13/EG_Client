@@ -1,10 +1,6 @@
 #pragma once
 
-#define	UINT8		unsigned char
-#define UINT		unsigned int
-
-#define INT16		short
-
-#define	DIRECTION	UINT8
-#define MAP_POS		int
+#define	DIRECTION		unsigned char
+#define MAP_POS			int
+#define TERRITORY_TYPE	unsigned int
 
