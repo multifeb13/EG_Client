@@ -36,7 +36,7 @@ int GetUserID(char *cpBuffer, unsigned int nBufferSize)
 	// Sample
 
 	// UserIDに「My UserID」を設定する
-	cpUserID = (char*)"The Last Hope";
+	cpUserID = (char*)"Wizard";
 	// Sample
 	//////////
 
