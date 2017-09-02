@@ -8,6 +8,7 @@
 #include "Custom.h"
 #include "StringUtility.h"
 #include <time.h>	//Sample//
+#include <stdlib.h>	//rand, srand//
 
 enum {
 	RESULT_FOUND_UNOCCUPATION = 1,
@@ -479,7 +480,8 @@ DIRECTION ToDirection( GAMEINFO* pGameInfo, PIECE* pPiece, MAP_POS iDestX, MAP_P
 			Direction = DirectionLR | DirectionUD;
 		}
 		else {
-			if( pGameInfo->nTurn % 2 ) {
+			srand((unsigned int)time(NULL));
+			if( rand() % 2 ) {
 				Direction = DirectionLR;
 			}
 			else {
