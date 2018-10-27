@@ -54,9 +54,6 @@
     <ClInclude Include="..\..\Common\ByteOrder.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="Types.h">
-      <Filter>ヘッダー ファイル</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
